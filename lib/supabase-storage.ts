@@ -262,6 +262,21 @@ export const getCardsDueToday = async () => {
   }
 };
 
+// Atualizar data de revisão de um flashcard
+export const updateFlashcardDueDate = async (flashcardId: string, newDueDate: Date): Promise<void> => {
+  try {
+    const { error } = await supabase
+      .from('flashcards')
+      .update({ due_date: newDueDate.toISOString() })
+      .eq('id', flashcardId);
+
+    if (error) throw error;
+  } catch (error) {
+    console.error('Erro ao atualizar data de revisão:', error);
+    throw error;
+  }
+};
+
 export const recordFSRSReview = async (
   flashcardId: string,
   rating: number,

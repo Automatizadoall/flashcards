@@ -11,6 +11,7 @@ import { CreateDeckDialog } from "@/components/create-deck-dialog";
 import { ElegantCalendar } from "@/components/elegant-calendar";
 import { ElegantStatistics } from "@/components/elegant-statistics";
 import { MinimalSidebar } from "@/components/minimal-sidebar";
+import { Dashboard } from "@/components/dashboard";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Flashcard } from "@/types/flashcard";
@@ -36,7 +37,7 @@ export default function Home() {
   const [isEditDeckDialogOpen, setIsEditDeckDialogOpen] = useState(false);
   const [isCreateDeckDialogOpen, setIsCreateDeckDialogOpen] = useState(false);
   const [isStudyMode, setIsStudyMode] = useState(false);
-  const [activeTab, setActiveTab] = useState("flashcards");
+  const [activeTab, setActiveTab] = useState("dashboard");
   
   // Estados para estatísticas
   const [userStats, setUserStats] = useState<any>(null);
@@ -141,22 +142,67 @@ export default function Home() {
       <main className="flex-1 min-w-0">
         <div className="container mx-auto px-4 py-6 sm:py-8 max-w-7xl">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            {activeTab === 'flashcards' && 'Meus Flashcards'}
-            {activeTab === 'calendar' && 'Calendário de Revisões'}
-            {activeTab === 'statistics' && 'Estatísticas'}
-          </h1>
-          <p className="text-muted-foreground">
-            {activeTab === 'flashcards' && 'Organize e estude seus flashcards com repetição espaçada'}
-            {activeTab === 'calendar' && 'Acompanhe seu progresso e revisões agendadas'}
-            {activeTab === 'statistics' && 'Analise seu desempenho e métricas de aprendizado'}
-          </p>
-        </div>
+        {activeTab !== 'dashboard' && (
+          <div className="mb-8">
+            <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent">
+              {activeTab === 'flashcards' && 'Meus Flashcards'}
+              {activeTab === 'calendar' && 'Calendário de Revisões'}
+              {activeTab === 'statistics' && 'Estatísticas'}
+            </h1>
+            <p className="text-muted-foreground">
+              {activeTab === 'flashcards' && 'Organize e estude seus flashcards com repetição espaçada'}
+              {activeTab === 'calendar' && 'Acompanhe seu progresso e revisões agendadas'}
+              {activeTab === 'statistics' && 'Analise seu desempenho e métricas de aprendizado'}
+            </p>
+          </div>
+        )}
 
         {/* Conteúdo das Abas */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="hidden"></div>
+
+          {/* Tab: Dashboard */}
+          <TabsContent value="dashboard">
+            <Dashboard
+              stats={{
+                totalCards: flashcards.length,
+                dueToday: dueCards.length,
+                reviewsToday: dailyStats[0]?.totalReviews || 0,
+                streak: dailyStats.filter(d => d.totalReviews > 0).length,
+                accuracy: userStats ? Math.round(((userStats.totalReviews - userStats.totalLapses) / Math.max(userStats.totalReviews, 1)) * 100) : 0,
+                weeklyGoal: 100,
+                weeklyProgress: dailyStats.slice(0, 7).reduce((sum, d) => sum + d.totalReviews, 0),
+              }}
+              upcomingReviews={calendarData
+                .filter(d => d.dueCount > 0)
+                .slice(0, 5)
+                .map(d => ({
+                  date: d.date,
+                  count: d.dueCount,
+                  decks: d.dueDecks?.map((deck: any) => ({
+                    nome: deck.deckNome,
+                    icone: deck.deckIcone,
+                    count: deck.count,
+                  })) || [],
+                }))}
+              recentDecks={decks.map(deck => {
+                const deckCards = flashcards.filter(f => {
+                  // Aqui você pode adicionar lógica para filtrar por deck se necessário
+                  return true;
+                });
+                return {
+                  ...deck,
+                  dueCards: deckCards.filter(f => {
+                    const due = f.dueDate ? new Date(f.dueDate) : null;
+                    return due && due <= new Date();
+                  }).length,
+                };
+              })}
+              onStartStudy={handleStartStudy}
+              onNavigateToCalendar={() => setActiveTab("calendar")}
+              onNavigateToFlashcards={() => setActiveTab("flashcards")}
+            />
+          </TabsContent>
 
           {/* Tab: Flashcards */}
           <TabsContent value="flashcards" className="space-y-6">

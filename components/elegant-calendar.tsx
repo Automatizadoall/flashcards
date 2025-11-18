@@ -8,15 +8,19 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, TrendingUp, Flame, Award, Zap, CheckCircle2 } from "lucide-react";
+import { updateFlashcardDueDate } from "@/lib/supabase-storage";
+import { useToast } from "@/components/ui/use-toast";
 
 interface ReviewDay {
   date: Date;
   count: number;
   dueCount: number;
-  dueCards?: Array<{
-    id: string;
-    frente: string;
-    deckIcone?: string;
+  dueDecks?: Array<{
+    deckId: string;
+    deckNome: string;
+    deckIcone: string;
+    cardIds: string[];
+    count: number;
   }>;
 }
 
@@ -28,6 +32,28 @@ interface ElegantCalendarProps {
 export function ElegantCalendar({ reviewData, onDateSelect }: ElegantCalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [draggedDeck, setDraggedDeck] = useState<{ deckId: string; deckNome: string; deckIcone: string; cardIds: string[]; sourceDate: Date } | null>(null);
+  const { toast } = useToast();
+
+  const moveReviewToDate = async (cardIds: string[], newDate: Date) => {
+    try {
+      for (const cardId of cardIds) {
+        await updateFlashcardDueDate(cardId, newDate);
+      }
+      toast({
+        title: "Revisão movida!",
+        description: `${cardIds.length} cards movidos para ${format(newDate, "d 'de' MMMM", { locale: ptBR })}`,
+      });
+      // Recarregar dados (isso deve ser feito pelo componente pai)
+      window.location.reload();
+    } catch (error) {
+      toast({
+        title: "Erro ao mover revisão",
+        description: "Não foi possível mover os cards. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
@@ -172,14 +198,31 @@ export function ElegantCalendar({ reviewData, onDateSelect }: ElegantCalendarPro
               const isSelected = selectedDate && isSameDay(date, selectedDate);
               const isTodayDay = isToday(date);
               const intensity = getDayIntensity(data);
-              const dueCards = data?.dueCards || [];
+              const dueDecks = data?.dueDecks || [];
 
               return (
-                <button
+                <div
                   key={date.toISOString()}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.currentTarget.classList.add('ring-2', 'ring-teal-400');
+                  }}
+                  onDragLeave={(e) => {
+                    e.currentTarget.classList.remove('ring-2', 'ring-teal-400');
+                  }}
+                  onDrop={async (e) => {
+                    e.preventDefault();
+                    e.currentTarget.classList.remove('ring-2', 'ring-teal-400');
+                    
+                    if (draggedDeck && !isSameDay(draggedDeck.sourceDate, date)) {
+                      // Mover revisão para novo dia
+                      await moveReviewToDate(draggedDeck.cardIds, date);
+                      setDraggedDeck(null);
+                    }
+                  }}
                   onClick={() => handleDayClick(date)}
                   className={cn(
-                    "h-28 p-2 rounded-xl transition-all relative group flex flex-col",
+                    "h-28 p-2 rounded-xl transition-all relative group flex flex-col cursor-pointer",
                     "hover:shadow-lg hover:-translate-y-1",
                     isSelected && "ring-2 ring-teal-600 ring-offset-2 shadow-xl",
                     isTodayDay && "border-2 border-teal-600 font-bold",
@@ -202,24 +245,33 @@ export function ElegantCalendar({ reviewData, onDateSelect }: ElegantCalendarPro
                     )}
                   </div>
 
-                  {/* Lista de Cards Devidos */}
+                  {/* Lista de Decks Devidos - Draggable */}
                   <div className="flex-1 overflow-hidden space-y-1">
-                    {dueCards.slice(0, 3).map((card, index) => (
+                    {dueDecks.map((deck) => (
                       <div
-                        key={card.id}
-                        className="text-[10px] leading-tight bg-white/40 dark:bg-black/20 px-1.5 py-0.5 rounded backdrop-blur-sm flex items-center gap-1"
+                        key={deck.deckId}
+                        draggable
+                        onDragStart={() => {
+                          setDraggedDeck({
+                            deckId: deck.deckId,
+                            deckNome: deck.deckNome,
+                            deckIcone: deck.deckIcone,
+                            cardIds: deck.cardIds,
+                            sourceDate: date,
+                          });
+                        }}
+                        onDragEnd={() => {
+                          setDraggedDeck(null);
+                        }}
+                        className="text-[10px] leading-tight bg-white/60 dark:bg-black/30 px-1.5 py-1 rounded backdrop-blur-sm flex items-center gap-1 cursor-move hover:bg-white/80 dark:hover:bg-black/40 transition-colors"
                       >
-                        {card.deckIcone && (
-                          <span className="text-xs flex-shrink-0">{card.deckIcone}</span>
-                        )}
-                        <span className="truncate text-left">{card.frente}</span>
+                        <span className="text-xs flex-shrink-0">{deck.deckIcone}</span>
+                        <span className="truncate text-left flex-1">{deck.deckNome}</span>
+                        <span className="text-[9px] bg-teal-600 text-white px-1 rounded-full">
+                          {deck.count}
+                        </span>
                       </div>
                     ))}
-                    {dueCards.length > 3 && (
-                      <div className="text-[10px] text-center opacity-60">
-                        +{dueCards.length - 3} mais
-                      </div>
-                    )}
                   </div>
 
                   {/* Badge de Revisões Completas */}
@@ -230,7 +282,7 @@ export function ElegantCalendar({ reviewData, onDateSelect }: ElegantCalendarPro
                       </div>
                     </div>
                   )}
-                </button>
+                </div>
               );
             })}
           </div>

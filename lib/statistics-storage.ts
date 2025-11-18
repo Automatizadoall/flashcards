@@ -161,10 +161,10 @@ export async function getCalendarData(month: Date) {
       .from('flashcards')
       .select(`
         id,
-        frente,
         due_date,
         deck_id,
         decks (
+          nome,
           icone
         )
       `)
@@ -173,24 +173,37 @@ export async function getCalendarData(month: Date) {
 
     // Agrupar por data
     const reviewsByDate: Record<string, number> = {};
-    const dueByDate: Record<string, { count: number; cards: any[] }> = {};
+    const dueByDate: Record<string, { count: number; decks: Record<string, any> }> = {};
 
     (reviews || []).forEach(review => {
       const date = format(new Date(review.revisado_em), 'yyyy-MM-dd');
       reviewsByDate[date] = (reviewsByDate[date] || 0) + 1;
     });
 
+    // Agrupar por data e deck
     (dueCards || []).forEach(card => {
       const date = format(new Date(card.due_date), 'yyyy-MM-dd');
       if (!dueByDate[date]) {
-        dueByDate[date] = { count: 0, cards: [] };
+        dueByDate[date] = { count: 0, decks: {} };
       }
       dueByDate[date].count++;
-      dueByDate[date].cards.push({
-        id: card.id,
-        frente: card.frente,
-        deckIcone: card.decks?.icone || '📚',
-      });
+      
+      const deckId = card.deck_id || 'no-deck';
+      const deckNome = card.decks?.nome || 'Sem deck';
+      const deckIcone = card.decks?.icone || '📚';
+      
+      if (!dueByDate[date].decks[deckId]) {
+        dueByDate[date].decks[deckId] = {
+          deckId,
+          deckNome,
+          deckIcone,
+          cardIds: [],
+          count: 0,
+        };
+      }
+      
+      dueByDate[date].decks[deckId].cardIds.push(card.id);
+      dueByDate[date].decks[deckId].count++;
     });
 
     // Criar array de dias
@@ -203,7 +216,7 @@ export async function getCalendarData(month: Date) {
         date,
         count: reviewsByDate[dateStr] || 0,
         dueCount: dueByDate[dateStr]?.count || 0,
-        dueCards: dueByDate[dateStr]?.cards || [],
+        dueDecks: dueByDate[dateStr]?.decks ? Object.values(dueByDate[dateStr].decks) : [],
       });
     }
 

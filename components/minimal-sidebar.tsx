@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Brain,
+  LayoutDashboard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +22,7 @@ export function MinimalSidebar({ activeTab, onTabChange }: MinimalSidebarProps) 
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const navItems = [
+    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "flashcards", label: "Flashcards", icon: BookOpen },
     { id: "calendar", label: "Calendário", icon: Calendar },
     { id: "statistics", label: "Estatísticas", icon: BarChart3 },
