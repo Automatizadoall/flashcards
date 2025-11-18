@@ -9,8 +9,7 @@ import { DeckSelector } from "@/components/deck-selector";
 import { CreateDeckDialog } from "@/components/create-deck-dialog";
 import { CalendarView } from "@/components/calendar-view";
 import { StatisticsDashboard } from "@/components/statistics-dashboard";
-import { LeftSidebar } from "@/components/left-sidebar";
-import { RightSidebar } from "@/components/right-sidebar";
+import { MinimalSidebar } from "@/components/minimal-sidebar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Flashcard } from "@/types/flashcard";
@@ -127,73 +126,34 @@ export default function Home() {
     );
   }
 
-  // Calcular estatísticas para sidebars
-  const sidebarStats = userStats ? {
-    dueToday: userStats.dueToday || 0,
-    totalCards: userStats.totalCards || 0,
-    accuracy: dailyStats.length > 0 
-      ? Math.round((dailyStats.reduce((sum, d) => sum + d.correctReviews, 0) / 
-          Math.max(1, dailyStats.reduce((sum, d) => sum + d.totalReviews, 0))) * 100)
-      : 0,
-    streak: dailyStats.filter(d => d.totalReviews > 0).length,
-    reviewsToday: dailyStats[0]?.totalReviews || 0,
-    avgStability: userStats.avgStability || 0,
-  } : undefined;
-
-  const dueCardsList = dueCards.slice(0, 10).map((card: any) => ({
-    id: card.id,
-    frente: card.frente,
-    deckNome: card.deck_nome || 'Sem Deck',
-    deckIcone: card.deck_icone || '📚',
-  }));
-
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-blue-900/20 dark:to-purple-900/20">
-      {/* Sidebar Esquerda */}
-      <LeftSidebar
-        decks={decks}
-        selectedDeckIds={selectedDeckIds}
-        onSelectDecks={setSelectedDeckIds}
-        onCreateDeck={() => setIsCreateDeckDialogOpen(true)}
+      {/* Sidebar Minimalista */}
+      <MinimalSidebar
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        stats={sidebarStats}
       />
 
       {/* Conteúdo Principal */}
       <main className="flex-1 min-w-0">
-        <div className="container mx-auto px-4 py-6 sm:py-8 lg:pl-0">
-        {/* Header - Apenas em mobile */}
-        <div className="text-center mb-6 sm:mb-8 lg:hidden">
-          <h1 className="text-3xl sm:text-4xl font-bold mb-2 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            FlashCards Pro
+        <div className="container mx-auto px-4 py-6 sm:py-8 max-w-7xl">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            {activeTab === 'flashcards' && 'Meus Flashcards'}
+            {activeTab === 'calendar' && 'Calendário de Revisões'}
+            {activeTab === 'statistics' && 'Estatísticas'}
           </h1>
-          <p className="text-sm text-muted-foreground">
-            Sistema avançado de repetição espaçada com FSRS
+          <p className="text-muted-foreground">
+            {activeTab === 'flashcards' && 'Organize e estude seus flashcards com repetição espaçada'}
+            {activeTab === 'calendar' && 'Acompanhe seu progresso e revisões agendadas'}
+            {activeTab === 'statistics' && 'Analise seu desempenho e métricas de aprendizado'}
           </p>
         </div>
 
-        {/* Tabs de Navegação - Apenas em mobile */}
+        {/* Conteúdo das Abas */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <div className="flex justify-center mb-6 lg:hidden">
-            <TabsList className="grid w-full max-w-md grid-cols-3">
-              <TabsTrigger value="flashcards" className="gap-2">
-                <BookOpen className="h-4 w-4" />
-                <span className="hidden sm:inline">Flashcards</span>
-                <span className="sm:hidden">Cards</span>
-              </TabsTrigger>
-              <TabsTrigger value="calendar" className="gap-2">
-                <Calendar className="h-4 w-4" />
-                <span className="hidden sm:inline">Calendário</span>
-                <span className="sm:hidden">Agenda</span>
-              </TabsTrigger>
-              <TabsTrigger value="statistics" className="gap-2">
-                <BarChart3 className="h-4 w-4" />
-                <span className="hidden sm:inline">Estatísticas</span>
-                <span className="sm:hidden">Stats</span>
-              </TabsTrigger>
-            </TabsList>
-          </div>
+          <div className="hidden"></div>
 
           {/* Tab: Flashcards */}
           <TabsContent value="flashcards" className="space-y-6">
@@ -287,13 +247,6 @@ export default function Home() {
         />
         </div>
       </main>
-
-      {/* Sidebar Direita */}
-      <RightSidebar
-        stats={sidebarStats}
-        dueCards={dueCardsList}
-        onStartStudy={handleStartStudy}
-      />
     </div>
   );
 }
