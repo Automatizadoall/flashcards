@@ -9,11 +9,13 @@ import { DeckSelector } from "@/components/deck-selector";
 import { CreateDeckDialog } from "@/components/create-deck-dialog";
 import { CalendarView } from "@/components/calendar-view";
 import { StatisticsDashboard } from "@/components/statistics-dashboard";
+import { LeftSidebar } from "@/components/left-sidebar";
+import { RightSidebar } from "@/components/right-sidebar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Flashcard } from "@/types/flashcard";
 import { Deck } from "@/types/deck";
-import { getFlashcards, deleteFlashcard, initializeData } from "@/lib/supabase-storage";
+import { getFlashcards, deleteFlashcard, initializeData, getCardsDueToday } from "@/lib/supabase-storage";
 import { getDecks } from "@/lib/deck-storage";
 import {
   getUserStatistics,
@@ -39,6 +41,7 @@ export default function Home() {
   const [dailyStats, setDailyStats] = useState<any[]>([]);
   const [deckStats, setDeckStats] = useState<any[]>([]);
   const [calendarData, setCalendarData] = useState<any[]>([]);
+  const [dueCards, setDueCards] = useState<any[]>([]);
 
   const { toast } = useToast();
 
@@ -67,17 +70,19 @@ export default function Home() {
   };
 
   const loadStatistics = async () => {
-    const [user, daily, deck, calendar] = await Promise.all([
+    const [user, daily, deck, calendar, due] = await Promise.all([
       getUserStatistics(),
       getDailyStatistics(14),
       getDeckStatistics(),
       getCalendarData(new Date()),
+      getCardsDueToday(),
     ]);
     
     setUserStats(user);
     setDailyStats(daily);
     setDeckStats(deck);
     setCalendarData(calendar);
+    setDueCards(due || []);
   };
 
   const handleDelete = async (id: string) => {
@@ -122,22 +127,55 @@ export default function Home() {
     );
   }
 
+  // Calcular estatísticas para sidebars
+  const sidebarStats = userStats ? {
+    dueToday: userStats.dueToday || 0,
+    totalCards: userStats.totalCards || 0,
+    accuracy: dailyStats.length > 0 
+      ? Math.round((dailyStats.reduce((sum, d) => sum + d.correctReviews, 0) / 
+          Math.max(1, dailyStats.reduce((sum, d) => sum + d.totalReviews, 0))) * 100)
+      : 0,
+    streak: dailyStats.filter(d => d.totalReviews > 0).length,
+    reviewsToday: dailyStats[0]?.totalReviews || 0,
+    avgStability: userStats.avgStability || 0,
+  } : undefined;
+
+  const dueCardsList = dueCards.slice(0, 10).map((card: any) => ({
+    id: card.id,
+    frente: card.frente,
+    deckNome: card.deck_nome || 'Sem Deck',
+    deckIcone: card.deck_icone || '📚',
+  }));
+
   return (
-    <main className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-blue-900/20 dark:to-purple-900/20">
-      <div className="container mx-auto px-4 py-6 sm:py-8">
-        {/* Header */}
-        <div className="text-center mb-6 sm:mb-8">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-2 sm:mb-3 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+    <div className="flex min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-blue-900/20 dark:to-purple-900/20">
+      {/* Sidebar Esquerda */}
+      <LeftSidebar
+        decks={decks}
+        selectedDeckIds={selectedDeckIds}
+        onSelectDecks={setSelectedDeckIds}
+        onCreateDeck={() => setIsCreateDeckDialogOpen(true)}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        stats={sidebarStats}
+      />
+
+      {/* Conteúdo Principal */}
+      <main className="flex-1 min-w-0">
+        <div className="container mx-auto px-4 py-6 sm:py-8 lg:pl-0">
+        {/* Header - Apenas em mobile */}
+        <div className="text-center mb-6 sm:mb-8 lg:hidden">
+          <h1 className="text-3xl sm:text-4xl font-bold mb-2 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             FlashCards Pro
           </h1>
-          <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-sm text-muted-foreground">
             Sistema avançado de repetição espaçada com FSRS
           </p>
         </div>
 
-        {/* Tabs de Navegação */}
+        {/* Tabs de Navegação - Apenas em mobile */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <div className="flex justify-center mb-6">
+          <div className="flex justify-center mb-6 lg:hidden">
             <TabsList className="grid w-full max-w-md grid-cols-3">
               <TabsTrigger value="flashcards" className="gap-2">
                 <BookOpen className="h-4 w-4" />
@@ -247,7 +285,15 @@ export default function Home() {
             });
           }}
         />
-      </div>
-    </main>
+        </div>
+      </main>
+
+      {/* Sidebar Direita */}
+      <RightSidebar
+        stats={sidebarStats}
+        dueCards={dueCardsList}
+        onStartStudy={handleStartStudy}
+      />
+    </div>
   );
 }

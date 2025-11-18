@@ -247,6 +247,21 @@ export const getFlashcardStats = async (flashcardId: string) => {
 };
 
 // Registrar revisão com FSRS
+export const getCardsDueToday = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('cards_due_today')
+      .select('*')
+      .limit(20);
+
+    if (error) throw error;
+    return data;
+  } catch (error) {
+    console.error('Erro ao buscar cards devidos:', error);
+    return [];
+  }
+};
+
 export const recordFSRSReview = async (
   flashcardId: string,
   rating: number,
