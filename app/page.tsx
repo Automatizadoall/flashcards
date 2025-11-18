@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { FlashcardForm } from "@/components/flashcard-form";
 import { FlashcardList } from "@/components/flashcard-list";
 import { EditFlashcardDialog } from "@/components/edit-flashcard-dialog";
+import { EditDeckDialog } from "@/components/edit-deck-dialog";
 import { StudyModeFSRS } from "@/components/study-mode-fsrs";
 import { DeckSelector } from "@/components/deck-selector";
 import { CreateDeckDialog } from "@/components/create-deck-dialog";
@@ -30,7 +31,9 @@ export default function Home() {
   const [decks, setDecks] = useState<Deck[]>([]);
   const [selectedDeckIds, setSelectedDeckIds] = useState<string[]>([]);
   const [editingFlashcard, setEditingFlashcard] = useState<Flashcard | null>(null);
+  const [editingDeck, setEditingDeck] = useState<Deck | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isEditDeckDialogOpen, setIsEditDeckDialogOpen] = useState(false);
   const [isCreateDeckDialogOpen, setIsCreateDeckDialogOpen] = useState(false);
   const [isStudyMode, setIsStudyMode] = useState(false);
   const [activeTab, setActiveTab] = useState("flashcards");
@@ -163,6 +166,10 @@ export default function Home() {
                 selectedDeckIds={selectedDeckIds}
                 onSelectDecks={setSelectedDeckIds}
                 onCreateDeck={() => setIsCreateDeckDialogOpen(true)}
+                onEditDeck={(deck) => {
+                  setEditingDeck(deck);
+                  setIsEditDeckDialogOpen(true);
+                }}
               />
             </div>
 
@@ -242,6 +249,20 @@ export default function Home() {
             toast({
               title: "Deck criado!",
               description: "Seu novo deck foi criado com sucesso",
+            });
+          }}
+        />
+
+        <EditDeckDialog
+          deck={editingDeck}
+          open={isEditDeckDialogOpen}
+          onOpenChange={setIsEditDeckDialogOpen}
+          onUpdated={() => {
+            loadDecks();
+            loadFlashcards();
+            toast({
+              title: "Deck atualizado!",
+              description: "As alterações foram salvas com sucesso",
             });
           }}
         />
