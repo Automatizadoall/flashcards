@@ -8,8 +8,8 @@ import { EditDeckDialog } from "@/components/edit-deck-dialog";
 import { StudyModeFSRS } from "@/components/study-mode-fsrs";
 import { DeckSelector } from "@/components/deck-selector";
 import { CreateDeckDialog } from "@/components/create-deck-dialog";
-import { CalendarView } from "@/components/calendar-view";
-import { StatisticsDashboard } from "@/components/statistics-dashboard";
+import { ElegantCalendar } from "@/components/elegant-calendar";
+import { ElegantStatistics } from "@/components/elegant-statistics";
 import { MinimalSidebar } from "@/components/minimal-sidebar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -210,7 +210,7 @@ export default function Home() {
 
           {/* Tab: Calendário */}
           <TabsContent value="calendar">
-            <CalendarView 
+            <ElegantCalendar 
               reviewData={calendarData}
               onDateSelect={(date) => {
                 console.log("Data selecionada:", date);
@@ -221,7 +221,7 @@ export default function Home() {
           {/* Tab: Estatísticas */}
           <TabsContent value="statistics">
             {userStats && (
-              <StatisticsDashboard
+              <ElegantStatistics
                 userStats={userStats}
                 dailyStats={dailyStats}
                 deckStats={deckStats}

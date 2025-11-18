@@ -46,7 +46,7 @@ export function DeckSelector({ decks, selectedDeckIds, onSelectDecks, onCreateDe
   return (
     <div className="space-y-6">
       {/* Header com Gradiente */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 p-8 text-white">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-teal-600 via-teal-700 to-cyan-800 p-8 text-white">
         <div className="absolute inset-0 bg-black/10"></div>
         <div className="relative z-10">
           <div className="flex items-center justify-between mb-4">
@@ -59,7 +59,7 @@ export function DeckSelector({ decks, selectedDeckIds, onSelectDecks, onCreateDe
                 <p className="text-white/80 text-sm">Organize seus flashcards por tema</p>
               </div>
             </div>
-            <Button onClick={onCreateDeck} size="lg" className="bg-white text-purple-600 hover:bg-white/90 gap-2 shadow-lg">
+            <Button onClick={onCreateDeck} size="lg" className="bg-white text-teal-600 hover:bg-white/90 gap-2 shadow-lg">
               <Plus className="h-5 w-5" />
               Novo Deck
             </Button>

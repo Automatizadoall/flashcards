@@ -25,8 +25,8 @@ const config = {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
+          DEFAULT: "hsl(173 80% 40%)", // teal-700
+          foreground: "hsl(0 0% 100%)",
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
