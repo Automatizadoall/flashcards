@@ -144,6 +144,8 @@ export async function getCalendarData(month: Date) {
   try {
     const startDate = startOfDay(subDays(month, 30));
     const endDate = new Date();
+    const futureDate = new Date();
+    futureDate.setDate(futureDate.getDate() + 60);
 
     // Reviews por dia
     const { data: reviews, error } = await supabase
@@ -154,15 +156,24 @@ export async function getCalendarData(month: Date) {
 
     if (error) throw error;
 
-    // Cards devidos por dia (futuro)
+    // Cards devidos por dia com informações
     const { data: dueCards } = await supabase
       .from('flashcards')
-      .select('due_date')
-      .gte('due_date', startDate.toISOString());
+      .select(`
+        id,
+        frente,
+        due_date,
+        deck_id,
+        decks (
+          icone
+        )
+      `)
+      .gte('due_date', startDate.toISOString())
+      .lte('due_date', futureDate.toISOString());
 
     // Agrupar por data
     const reviewsByDate: Record<string, number> = {};
-    const dueByDate: Record<string, number> = {};
+    const dueByDate: Record<string, { count: number; cards: any[] }> = {};
 
     (reviews || []).forEach(review => {
       const date = format(new Date(review.revisado_em), 'yyyy-MM-dd');
@@ -171,18 +182,28 @@ export async function getCalendarData(month: Date) {
 
     (dueCards || []).forEach(card => {
       const date = format(new Date(card.due_date), 'yyyy-MM-dd');
-      dueByDate[date] = (dueByDate[date] || 0) + 1;
+      if (!dueByDate[date]) {
+        dueByDate[date] = { count: 0, cards: [] };
+      }
+      dueByDate[date].count++;
+      dueByDate[date].cards.push({
+        id: card.id,
+        frente: card.frente,
+        deckIcone: card.decks?.icone || '📚',
+      });
     });
 
     // Criar array de dias
     const result = [];
-    for (let i = 0; i < 60; i++) {
-      const date = subDays(endDate, i);
+    for (let i = -30; i < 60; i++) {
+      const date = new Date(endDate);
+      date.setDate(date.getDate() + i);
       const dateStr = format(date, 'yyyy-MM-dd');
       result.push({
         date,
         count: reviewsByDate[dateStr] || 0,
-        dueCount: dueByDate[dateStr] || 0,
+        dueCount: dueByDate[dateStr]?.count || 0,
+        dueCards: dueByDate[dateStr]?.cards || [],
       });
     }
 

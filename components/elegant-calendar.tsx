@@ -13,6 +13,11 @@ interface ReviewDay {
   date: Date;
   count: number;
   dueCount: number;
+  dueCards?: Array<{
+    id: string;
+    frente: string;
+    deckIcone?: string;
+  }>;
 }
 
 interface ElegantCalendarProps {
@@ -156,10 +161,10 @@ export function ElegantCalendar({ reviewData, onDateSelect }: ElegantCalendarPro
             ))}
           </div>
 
-          {/* Grid de dias */}
-          <div className="grid grid-cols-7 gap-2">
+          {/* Grid de dias - Retangular */}
+          <div className="grid grid-cols-7 gap-3">
             {prefixDays.map((_, index) => (
-              <div key={`empty-${index}`} className="aspect-square" />
+              <div key={`empty-${index}`} className="h-28" />
             ))}
 
             {daysInMonth.map((date) => {
@@ -167,37 +172,63 @@ export function ElegantCalendar({ reviewData, onDateSelect }: ElegantCalendarPro
               const isSelected = selectedDate && isSameDay(date, selectedDate);
               const isTodayDay = isToday(date);
               const intensity = getDayIntensity(data);
+              const dueCards = data?.dueCards || [];
 
               return (
                 <button
                   key={date.toISOString()}
                   onClick={() => handleDayClick(date)}
                   className={cn(
-                    "aspect-square p-2 rounded-xl transition-all relative group",
-                    "hover:scale-110 hover:shadow-lg",
-                    isSelected && "ring-2 ring-teal-600 ring-offset-2 scale-110 shadow-xl",
+                    "h-28 p-2 rounded-xl transition-all relative group flex flex-col",
+                    "hover:shadow-lg hover:-translate-y-1",
+                    isSelected && "ring-2 ring-teal-600 ring-offset-2 shadow-xl",
                     isTodayDay && "border-2 border-teal-600 font-bold",
                     !data && "hover:bg-muted/50",
                     // Intensidades de cor
-                    intensity === "intensity-0" && "bg-gray-100 dark:bg-gray-800",
-                    intensity === "intensity-1" && "bg-teal-100 dark:bg-teal-950 text-teal-900 dark:text-teal-100",
-                    intensity === "intensity-2" && "bg-teal-300 dark:bg-teal-800 text-teal-900 dark:text-teal-50",
-                    intensity === "intensity-3" && "bg-teal-500 dark:bg-teal-600 text-white",
-                    intensity === "intensity-4" && "bg-teal-700 dark:bg-teal-500 text-white font-bold"
+                    intensity === "intensity-0" && "bg-gray-50 dark:bg-gray-800/50",
+                    intensity === "intensity-1" && "bg-teal-50 dark:bg-teal-950/30 text-teal-900 dark:text-teal-100",
+                    intensity === "intensity-2" && "bg-teal-100 dark:bg-teal-900/40 text-teal-900 dark:text-teal-50",
+                    intensity === "intensity-3" && "bg-teal-200 dark:bg-teal-800/50 text-teal-900 dark:text-white",
+                    intensity === "intensity-4" && "bg-teal-300 dark:bg-teal-700/50 text-teal-900 dark:text-white font-bold"
                   )}
                 >
-                  <span className="text-sm">{format(date, "d")}</span>
-                  
+                  {/* Header do Dia */}
+                  <div className="flex items-center justify-between mb-1 flex-shrink-0">
+                    <span className="text-sm font-semibold">{format(date, "d")}</span>
+                    {data && data.dueCount > 0 && (
+                      <div className="w-5 h-5 bg-orange-500 rounded-full flex items-center justify-center">
+                        <span className="text-white text-[10px] font-bold">{data.dueCount}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Lista de Cards Devidos */}
+                  <div className="flex-1 overflow-hidden space-y-1">
+                    {dueCards.slice(0, 3).map((card, index) => (
+                      <div
+                        key={card.id}
+                        className="text-[10px] leading-tight bg-white/40 dark:bg-black/20 px-1.5 py-0.5 rounded backdrop-blur-sm flex items-center gap-1"
+                      >
+                        {card.deckIcone && (
+                          <span className="text-xs flex-shrink-0">{card.deckIcone}</span>
+                        )}
+                        <span className="truncate text-left">{card.frente}</span>
+                      </div>
+                    ))}
+                    {dueCards.length > 3 && (
+                      <div className="text-[10px] text-center opacity-60">
+                        +{dueCards.length - 3} mais
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Badge de Revisões Completas */}
                   {data && data.count > 0 && (
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <div className="bg-black/80 text-white text-xs px-2 py-1 rounded">
-                        {data.count}
+                    <div className="mt-1 flex-shrink-0">
+                      <div className="text-[10px] bg-teal-600 text-white px-1.5 py-0.5 rounded-full text-center">
+                        ✓ {data.count}
                       </div>
                     </div>
-                  )}
-
-                  {data && data.dueCount > 0 && (
-                    <div className="absolute top-1 right-1 w-2 h-2 bg-orange-500 rounded-full animate-pulse" />
                   )}
                 </button>
               );
