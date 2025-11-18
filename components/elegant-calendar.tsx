@@ -41,11 +41,16 @@ export function ElegantCalendar({ reviewData, onDateSelect }: ElegantCalendarPro
         await updateFlashcardDueDate(cardId, newDate);
       }
       toast({
-        title: "Revisão movida!",
-        description: `${cardIds.length} cards movidos para ${format(newDate, "d 'de' MMMM", { locale: ptBR })}`,
+        title: "✓ Revisão movida com sucesso!",
+        description: `${cardIds.length} ${cardIds.length === 1 ? 'card movido' : 'cards movidos'} para ${format(newDate, "d 'de' MMMM", { locale: ptBR })}`,
       });
-      // Recarregar dados (isso deve ser feito pelo componente pai)
-      window.location.reload();
+      
+      // Recarregar apenas os dados do calendário sem redirecionar
+      if (onDateSelect) {
+        setTimeout(() => {
+          window.dispatchEvent(new Event('reload-calendar'));
+        }, 500);
+      }
     } catch (error) {
       toast({
         title: "Erro ao mover revisão",
@@ -205,16 +210,22 @@ export function ElegantCalendar({ reviewData, onDateSelect }: ElegantCalendarPro
                   key={date.toISOString()}
                   onDragOver={(e) => {
                     e.preventDefault();
-                    e.currentTarget.classList.add('ring-2', 'ring-teal-400');
+                    e.currentTarget.classList.add('ring-2', 'ring-teal-500', 'scale-105', 'shadow-xl', 'bg-teal-50/50');
                   }}
                   onDragLeave={(e) => {
-                    e.currentTarget.classList.remove('ring-2', 'ring-teal-400');
+                    e.currentTarget.classList.remove('ring-2', 'ring-teal-500', 'scale-105', 'shadow-xl', 'bg-teal-50/50');
                   }}
                   onDrop={async (e) => {
                     e.preventDefault();
-                    e.currentTarget.classList.remove('ring-2', 'ring-teal-400');
+                    e.currentTarget.classList.remove('ring-2', 'ring-teal-500', 'scale-105', 'shadow-xl', 'bg-teal-50/50');
                     
                     if (draggedDeck && !isSameDay(draggedDeck.sourceDate, date)) {
+                      // Adicionar efeito visual de sucesso
+                      e.currentTarget.classList.add('ring-4', 'ring-green-400', 'bg-green-50');
+                      setTimeout(() => {
+                        e.currentTarget.classList.remove('ring-4', 'ring-green-400', 'bg-green-50');
+                      }, 600);
+                      
                       // Mover revisão para novo dia
                       await moveReviewToDate(draggedDeck.cardIds, date);
                       setDraggedDeck(null);
@@ -251,7 +262,7 @@ export function ElegantCalendar({ reviewData, onDateSelect }: ElegantCalendarPro
                       <div
                         key={deck.deckId}
                         draggable
-                        onDragStart={() => {
+                        onDragStart={(e) => {
                           setDraggedDeck({
                             deckId: deck.deckId,
                             deckNome: deck.deckNome,
@@ -259,15 +270,32 @@ export function ElegantCalendar({ reviewData, onDateSelect }: ElegantCalendarPro
                             cardIds: deck.cardIds,
                             sourceDate: date,
                           });
+                          
+                          // Criar preview personalizado
+                          const preview = document.createElement('div');
+                          preview.className = 'bg-teal-600 text-white px-3 py-2 rounded-lg shadow-2xl flex items-center gap-2 text-sm font-medium';
+                          preview.innerHTML = `<span>${deck.deckIcone}</span><span>${deck.deckNome}</span><span class="bg-white/20 px-2 py-0.5 rounded-full text-xs">${deck.count}</span>`;
+                          preview.style.position = 'absolute';
+                          preview.style.top = '-1000px';
+                          document.body.appendChild(preview);
+                          e.dataTransfer.setDragImage(preview, 0, 0);
+                          setTimeout(() => document.body.removeChild(preview), 0);
                         }}
                         onDragEnd={() => {
                           setDraggedDeck(null);
                         }}
-                        className="text-[10px] leading-tight bg-white/60 dark:bg-black/30 px-1.5 py-1 rounded backdrop-blur-sm flex items-center gap-1 cursor-move hover:bg-white/80 dark:hover:bg-black/40 transition-colors"
+                        className={cn(
+                          "text-[10px] leading-tight bg-white/60 dark:bg-black/30 px-1.5 py-1 rounded backdrop-blur-sm",
+                          "flex items-center gap-1 cursor-grab active:cursor-grabbing",
+                          "hover:bg-teal-50 dark:hover:bg-teal-950/30 hover:shadow-md",
+                          "transition-all duration-200",
+                          "border border-transparent hover:border-teal-300",
+                          draggedDeck?.deckId === deck.deckId && "opacity-50"
+                        )}
                       >
                         <span className="text-xs flex-shrink-0">{deck.deckIcone}</span>
-                        <span className="truncate text-left flex-1">{deck.deckNome}</span>
-                        <span className="text-[9px] bg-teal-600 text-white px-1 rounded-full">
+                        <span className="truncate text-left flex-1 font-medium">{deck.deckNome}</span>
+                        <span className="text-[9px] bg-teal-600 text-white px-1.5 rounded-full font-semibold">
                           {deck.count}
                         </span>
                       </div>

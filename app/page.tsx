@@ -56,6 +56,14 @@ export default function Home() {
       await loadStatistics();
     };
     init();
+    
+    // Listener para recarregar calendário após drag & drop
+    const handleReloadCalendar = () => {
+      loadStatistics();
+    };
+    
+    window.addEventListener('reload-calendar', handleReloadCalendar);
+    return () => window.removeEventListener('reload-calendar', handleReloadCalendar);
   }, []);
 
   useEffect(() => {

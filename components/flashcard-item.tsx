@@ -167,13 +167,13 @@ export function FlashcardItem({ flashcard, onDelete, onEdit }: FlashcardItemProp
           <span className="sm:hidden">✏️</span>
         </Button>
         <Button
-          variant="destructive"
+          variant="ghost"
           size="sm"
           onClick={(e) => {
             e.stopPropagation();
             onDelete(flashcard.id);
           }}
-          className="flex-1 text-xs sm:text-sm"
+          className="flex-1 text-xs sm:text-sm text-gray-600 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors"
         >
           <Trash2 className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
           <span className="hidden sm:inline">Excluir</span>
