@@ -12,5 +12,15 @@ export interface Flashcard {
   totalAcertos?: number;
   totalErros?: number;
   facilidade?: number;
+  // Campos FSRS
+  state?: 'new' | 'learning' | 'review' | 'relearning';
+  difficulty?: number;
+  stability?: number;
+  dueDate?: Date;
+  elapsedDays?: number;
+  scheduledDays?: number;
+  reps?: number;
+  lapses?: number;
+  lastReview?: Date;
 }
 

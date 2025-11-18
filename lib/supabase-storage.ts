@@ -19,6 +19,16 @@ const dbToFlashcard = (db: any): Flashcard => ({
   totalAcertos: db.total_acertos,
   totalErros: db.total_erros,
   facilidade: db.facilidade,
+  // Campos FSRS
+  state: db.state || 'new',
+  difficulty: db.difficulty || 0,
+  stability: db.stability || 0,
+  dueDate: db.due_date ? new Date(db.due_date) : new Date(),
+  elapsedDays: db.elapsed_days || 0,
+  scheduledDays: db.scheduled_days || 0,
+  reps: db.reps || 0,
+  lapses: db.lapses || 0,
+  lastReview: db.last_review ? new Date(db.last_review) : undefined,
 });
 
 // Converter do formato da aplicação para o formato do Supabase
@@ -233,6 +243,56 @@ export const getFlashcardStats = async (flashcardId: string) => {
   } catch (error) {
     console.error('Erro ao buscar estatísticas:', error);
     return null;
+  }
+};
+
+// Registrar revisão com FSRS
+export const recordFSRSReview = async (
+  flashcardId: string,
+  rating: number,
+  tempoResposta: number,
+  fsrsResult: any
+): Promise<boolean> => {
+  try {
+    // Atualizar o flashcard com novos dados FSRS
+    const { error: updateError } = await supabase
+      .from('flashcards')
+      .update({
+        state: fsrsResult.card.state,
+        difficulty: fsrsResult.card.difficulty,
+        stability: fsrsResult.card.stability,
+        due_date: fsrsResult.card.dueDate.toISOString(),
+        elapsed_days: fsrsResult.card.elapsedDays,
+        scheduled_days: fsrsResult.card.scheduledDays,
+        reps: fsrsResult.card.reps,
+        lapses: fsrsResult.card.lapses,
+        last_review: fsrsResult.card.lastReview?.toISOString(),
+        ultima_revisao: fsrsResult.card.lastReview?.toISOString(),
+      })
+      .eq('id', flashcardId);
+
+    if (updateError) throw updateError;
+
+    // Registrar a revisão
+    const { error: reviewError } = await supabase
+      .from('flashcard_reviews')
+      .insert({
+        flashcard_id: flashcardId,
+        acertou: rating >= 3, // Good ou Easy = acertou
+        tempo_resposta: tempoResposta,
+        rating,
+        state_after: fsrsResult.card.state,
+        difficulty_after: fsrsResult.card.difficulty,
+        stability_after: fsrsResult.card.stability,
+        elapsed_days: fsrsResult.card.elapsedDays,
+        scheduled_days: fsrsResult.scheduledDays,
+      });
+
+    if (reviewError) throw reviewError;
+    return true;
+  } catch (error) {
+    console.error('Erro ao registrar revisão FSRS:', error);
+    return false;
   }
 };
 

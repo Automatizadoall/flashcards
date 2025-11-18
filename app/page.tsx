@@ -4,15 +4,24 @@ import { useState, useEffect } from "react";
 import { FlashcardForm } from "@/components/flashcard-form";
 import { FlashcardList } from "@/components/flashcard-list";
 import { EditFlashcardDialog } from "@/components/edit-flashcard-dialog";
-import { StudyMode } from "@/components/study-mode";
+import { StudyModeFSRS } from "@/components/study-mode-fsrs";
 import { DeckSelector } from "@/components/deck-selector";
 import { CreateDeckDialog } from "@/components/create-deck-dialog";
+import { CalendarView } from "@/components/calendar-view";
+import { StatisticsDashboard } from "@/components/statistics-dashboard";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Flashcard } from "@/types/flashcard";
 import { Deck } from "@/types/deck";
 import { getFlashcards, deleteFlashcard, initializeData } from "@/lib/supabase-storage";
 import { getDecks } from "@/lib/deck-storage";
-import { BookOpen, GraduationCap } from "lucide-react";
+import {
+  getUserStatistics,
+  getDailyStatistics,
+  getDeckStatistics,
+  getCalendarData,
+} from "@/lib/statistics-storage";
+import { BookOpen, BarChart3, Calendar } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
 export default function Home() {
@@ -23,6 +32,14 @@ export default function Home() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isCreateDeckDialogOpen, setIsCreateDeckDialogOpen] = useState(false);
   const [isStudyMode, setIsStudyMode] = useState(false);
+  const [activeTab, setActiveTab] = useState("flashcards");
+  
+  // Estados para estatísticas
+  const [userStats, setUserStats] = useState<any>(null);
+  const [dailyStats, setDailyStats] = useState<any[]>([]);
+  const [deckStats, setDeckStats] = useState<any[]>([]);
+  const [calendarData, setCalendarData] = useState<any[]>([]);
+
   const { toast } = useToast();
 
   useEffect(() => {
@@ -30,6 +47,7 @@ export default function Home() {
       await initializeData();
       await loadDecks();
       await loadFlashcards();
+      await loadStatistics();
     };
     init();
   }, []);
@@ -48,20 +66,29 @@ export default function Home() {
     setFlashcards(cards);
   };
 
+  const loadStatistics = async () => {
+    const [user, daily, deck, calendar] = await Promise.all([
+      getUserStatistics(),
+      getDailyStatistics(14),
+      getDeckStatistics(),
+      getCalendarData(new Date()),
+    ]);
+    
+    setUserStats(user);
+    setDailyStats(daily);
+    setDeckStats(deck);
+    setCalendarData(calendar);
+  };
+
   const handleDelete = async (id: string) => {
     const success = await deleteFlashcard(id);
     if (success) {
       toast({
-        title: "Excluído",
-        description: "Flashcard removido com sucesso",
+        title: "Sucesso!",
+        description: "Flashcard excluído",
       });
       await loadFlashcards();
-    } else {
-      toast({
-        title: "Erro",
-        description: "Não foi possível excluir o flashcard",
-        variant: "destructive",
-      });
+      await loadStatistics();
     }
   };
 
@@ -73,8 +100,8 @@ export default function Home() {
   const handleStartStudy = () => {
     if (flashcards.length === 0) {
       toast({
-        title: "Aviso",
-        description: "Crie pelo menos um flashcard para iniciar o modo de estudo",
+        title: "Atenção",
+        description: "Você precisa ter pelo menos um flashcard para estudar",
         variant: "destructive",
       });
       return;
@@ -83,70 +110,130 @@ export default function Home() {
   };
 
   if (isStudyMode) {
-    return <StudyMode flashcards={flashcards} onExit={() => setIsStudyMode(false)} />;
+    return (
+      <StudyModeFSRS
+        flashcards={flashcards}
+        onExit={() => {
+          setIsStudyMode(false);
+          loadFlashcards();
+          loadStatistics();
+        }}
+      />
+    );
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        <div className="flex flex-col items-center mb-6 sm:mb-8">
-          <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-            <GraduationCap className="h-8 w-8 sm:h-10 md:h-12 text-primary" />
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center">
-              Plataforma de Flashcards
-            </h1>
-          </div>
-          <p className="text-sm sm:text-base text-muted-foreground text-center max-w-2xl px-4">
-            Crie, organize e estude com flashcards personalizados. Aprenda de forma
-            eficiente com nosso sistema de repetição espaçada.
+    <main className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-blue-900/20 dark:to-purple-900/20">
+      <div className="container mx-auto px-4 py-6 sm:py-8">
+        {/* Header */}
+        <div className="text-center mb-6 sm:mb-8">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-2 sm:mb-3 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            FlashCards Pro
+          </h1>
+          <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto">
+            Sistema avançado de repetição espaçada com FSRS
           </p>
         </div>
 
-        <div className="mb-6 sm:mb-8">
-          <DeckSelector
-            decks={decks}
-            selectedDeckIds={selectedDeckIds}
-            onSelectDecks={setSelectedDeckIds}
-            onCreateDeck={() => setIsCreateDeckDialogOpen(true)}
-          />
-        </div>
-
-        <div className="flex justify-center mb-6 sm:mb-8">
-          <Button 
-            size="lg" 
-            onClick={handleStartStudy} 
-            className="gap-2 w-full sm:w-auto max-w-md"
-            disabled={flashcards.length === 0}
-          >
-            <BookOpen className="h-5 w-5" />
-            Iniciar Modo de Estudo ({flashcards.length} {flashcards.length === 1 ? 'card' : 'cards'})
-          </Button>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 mb-12">
-          <div className="lg:col-span-1 order-2 lg:order-1">
-            <FlashcardForm onAdd={loadFlashcards} selectedDeckId={selectedDeckIds[0] || null} />
+        {/* Tabs de Navegação */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <div className="flex justify-center mb-6">
+            <TabsList className="grid w-full max-w-md grid-cols-3">
+              <TabsTrigger value="flashcards" className="gap-2">
+                <BookOpen className="h-4 w-4" />
+                <span className="hidden sm:inline">Flashcards</span>
+                <span className="sm:hidden">Cards</span>
+              </TabsTrigger>
+              <TabsTrigger value="calendar" className="gap-2">
+                <Calendar className="h-4 w-4" />
+                <span className="hidden sm:inline">Calendário</span>
+                <span className="sm:hidden">Agenda</span>
+              </TabsTrigger>
+              <TabsTrigger value="statistics" className="gap-2">
+                <BarChart3 className="h-4 w-4" />
+                <span className="hidden sm:inline">Estatísticas</span>
+                <span className="sm:hidden">Stats</span>
+              </TabsTrigger>
+            </TabsList>
           </div>
-          <div className="lg:col-span-2 order-1 lg:order-2">
-            <div className="mb-4">
-              <h2 className="text-xl sm:text-2xl font-semibold mb-2">Meus Flashcards</h2>
-              <p className="text-sm sm:text-base text-muted-foreground">
-                Total: {flashcards.length} {flashcards.length === 1 ? "cartão" : "cartões"}
-              </p>
+
+          {/* Tab: Flashcards */}
+          <TabsContent value="flashcards" className="space-y-6">
+            <div className="mb-6 sm:mb-8">
+              <DeckSelector
+                decks={decks}
+                selectedDeckIds={selectedDeckIds}
+                onSelectDecks={setSelectedDeckIds}
+                onCreateDeck={() => setIsCreateDeckDialogOpen(true)}
+              />
             </div>
-            <FlashcardList
-              flashcards={flashcards}
-              onDelete={handleDelete}
-              onEdit={handleEdit}
-            />
-          </div>
-        </div>
 
+            <div className="flex justify-center mb-6 sm:mb-8">
+              <Button 
+                size="lg" 
+                onClick={handleStartStudy} 
+                className="gap-2 w-full sm:w-auto max-w-md"
+                disabled={flashcards.length === 0}
+              >
+                <BookOpen className="h-5 w-5" />
+                Iniciar Modo de Estudo ({flashcards.length} {flashcards.length === 1 ? 'card' : 'cards'})
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
+              <div className="lg:col-span-1 order-2 lg:order-1">
+                <FlashcardForm onAdd={() => {
+                  loadFlashcards();
+                  loadStatistics();
+                }} selectedDeckId={selectedDeckIds[0] || null} />
+              </div>
+              <div className="lg:col-span-2 order-1 lg:order-2">
+                <div className="mb-4">
+                  <h2 className="text-xl sm:text-2xl font-semibold mb-2">Meus Flashcards</h2>
+                  <p className="text-sm sm:text-base text-muted-foreground">
+                    Total: {flashcards.length} {flashcards.length === 1 ? "cartão" : "cartões"}
+                  </p>
+                </div>
+                <FlashcardList
+                  flashcards={flashcards}
+                  onDelete={handleDelete}
+                  onEdit={handleEdit}
+                />
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* Tab: Calendário */}
+          <TabsContent value="calendar">
+            <CalendarView 
+              reviewData={calendarData}
+              onDateSelect={(date) => {
+                console.log("Data selecionada:", date);
+              }}
+            />
+          </TabsContent>
+
+          {/* Tab: Estatísticas */}
+          <TabsContent value="statistics">
+            {userStats && (
+              <StatisticsDashboard
+                userStats={userStats}
+                dailyStats={dailyStats}
+                deckStats={deckStats}
+              />
+            )}
+          </TabsContent>
+        </Tabs>
+
+        {/* Dialogs */}
         <EditFlashcardDialog
           flashcard={editingFlashcard}
           open={isEditDialogOpen}
           onOpenChange={setIsEditDialogOpen}
-          onUpdate={loadFlashcards}
+          onUpdate={() => {
+            loadFlashcards();
+            loadStatistics();
+          }}
         />
 
         <CreateDeckDialog
@@ -164,4 +251,3 @@ export default function Home() {
     </main>
   );
 }
-
